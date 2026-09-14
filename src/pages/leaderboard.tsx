@@ -1,4 +1,4 @@
-﻿import type { NextPage } from "next";
+import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import ThemeChange from "../utils/ThemeChange";
@@ -40,7 +40,7 @@ const Leaderboard: NextPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {data?.map((user, idx) => (
+                {data?.map((user: { handle: string; solvedCount: number; lastUpdated: Date | string }, idx: number) => (
                   <tr key={user.handle} className="hover">
                     <td className="text-center font-bold text-base-content/50">{idx + 1}</td>
                     <td className="font-bold">
