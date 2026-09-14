@@ -164,7 +164,7 @@ const Home: NextPage = () => {
                   value={user}
                   onChange={(e) => setUser(e.target.value)}
                   type="text"
-                  placeholder="e.g. anirudtate"
+                  placeholder="e.g. brainsoft"
                   className="input input-bordered w-full focus:input-primary"
                 />
               </label>
