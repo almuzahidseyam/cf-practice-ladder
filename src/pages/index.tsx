@@ -1,9 +1,11 @@
 import type { NextPage } from "next";
 import Head from "next/head";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import ThemeChange from "../utils/ThemeChange";
 import { trpc } from "../utils/trpc";
 import type { OutProblem } from "../utils/types";
+import { Heatmap } from "../components/Heatmap";
 
 type SavedMatchup = {
   user: string;
@@ -49,7 +51,8 @@ const Home: NextPage = () => {
     );
   }, [user, expert, page, hydrated]);
 
-  const allProblems: OutProblem[] = Array.isArray(probs.data) ? probs.data : [];
+  const allProblems: OutProblem[] = probs.data && typeof probs.data === 'object' && 'probs' in probs.data ? probs.data.probs : [];
+  const heatmapData = probs.data && typeof probs.data === 'object' && 'heatmap' in probs.data ? (probs.data.heatmap as Record<string, number>) : null;
 
   const ratings = useMemo(() => {
     return [...new Set(allProblems.map((problem) => problem.rating))].sort(
@@ -114,7 +117,7 @@ const Home: NextPage = () => {
     probs.mutate(matchup);
   };
 
-  const hasResults = Array.isArray(probs.data);
+  const hasResults = probs.data && typeof probs.data === 'object' && 'probs' in probs.data;
   const error = probs.data === "wrong";
 
   return (
@@ -142,7 +145,12 @@ const Home: NextPage = () => {
                   See what a stronger handle solved, then climb one rating at a time.
                 </p>
               </div>
-              <ThemeChange className="" />
+              <div className="flex flex-col items-end gap-2">
+                <ThemeChange className="" />
+                <Link href="/leaderboard" className="btn btn-sm btn-outline btn-primary mt-2">
+                  🏆 Leaderboard
+                </Link>
+              </div>
             </header>
 
             <form className="space-y-4" onSubmit={handleSubmit}>
@@ -258,7 +266,13 @@ const Home: NextPage = () => {
               </section>
             )}
 
-            <footer className="mt-6 border-t border-base-300 pt-4 text-xs leading-5 text-base-content/45">
+            {heatmapData && (
+              <div className="mt-6 border-t border-base-300 pt-5">
+                <Heatmap data={heatmapData} />
+              </div>
+            )}
+
+            <footer className="mt-8 text-center text-[11px] text-base-content/40">
               Original project credit:{" "}
               <a
                 className="link link-hover font-semibold"
@@ -435,6 +449,45 @@ const ProblemRow = ({ prob, index }: { prob: OutProblem; index: number }) => {
   const problemUrl = `https://codeforces.com/contest/${prob.cid}/problem/${prob.letter}`;
   const submissionUrl = `https://codeforces.com/contest/${prob.cid}/submission/${prob.id}`;
 
+  const timerKey = `cf-ladder-timer-${prob.cid}-${prob.letter}`;
+  
+  // State for stopwatch
+  const [time, setTime] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedTimer = localStorage.getItem(timerKey);
+      if (savedTimer) {
+        setTime(parseInt(savedTimer, 10));
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [timerKey]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRunning && !solved) {
+      interval = setInterval(() => {
+        setTime((prev) => {
+          const newTime = prev + 1;
+          localStorage.setItem(timerKey, newTime.toString());
+          return newTime;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRunning, solved, timerKey]);
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    return `${m}m ${s}s`;
+  };
+
   return (
     <tr className="hover">
       <th className="text-center text-base-content/35">{index + 1}</th>
@@ -461,9 +514,37 @@ const ProblemRow = ({ prob, index }: { prob: OutProblem; index: number }) => {
         {prob.cid}{prob.letter}
       </td>
       <td className="text-center">
-        <span className={`badge ${solved ? "badge-success" : "badge-error"} badge-outline whitespace-nowrap`}>
-          {solved ? "✓ solved" : "unsolved"}
-        </span>
+        <div className="flex flex-col items-center gap-1">
+          <span className={`badge ${solved ? "badge-success" : "badge-error"} badge-outline whitespace-nowrap`}>
+            {solved ? "✓ solved" : "unsolved"}
+          </span>
+          {!solved && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="font-mono text-xs w-12 text-right">{formatTime(time)}</span>
+              <button 
+                onClick={() => setIsRunning(!isRunning)} 
+                className={`btn btn-xs btn-circle ${isRunning ? "btn-warning" : "btn-primary"}`}
+                title={isRunning ? "Pause" : "Start"}
+              >
+                {isRunning ? "⏸" : "▶"}
+              </button>
+              {time > 0 && !isRunning && (
+                <button 
+                  onClick={() => { setTime(0); localStorage.removeItem(timerKey); }} 
+                  className="btn btn-xs btn-circle btn-ghost"
+                  title="Reset"
+                >
+                  🔄
+                </button>
+              )}
+            </div>
+          )}
+          {solved && time > 0 && (
+            <span className="font-mono text-xs text-success mt-1">
+              Solved in {formatTime(time)}
+            </span>
+          )}
+        </div>
       </td>
       <td className="text-right">
         <div className="inline-flex gap-1">

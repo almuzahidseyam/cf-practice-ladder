@@ -1,21 +1,25 @@
-# CF Practice Ladder
+﻿# CF Practice Ladder (Premium v3.0.0)
 
 A focused Codeforces practice ladder. Enter your handle and a reference handle to see the unique accepted problems solved by the reference user, grouped by rating and marked with your solved/unsolved status.
 
-## Highlights
+## Highlights (v3.0.0 Premium Features)
 
-- Rating-by-rating problem ladder
-- Solved / remaining / progress summary
-- Saved handle matchups in browser storage
-- Last session (handles + selected rating) restored automatically
-- Responsive desktop/mobile interface
-- Light/dark and DaisyUI theme support
-- Direct problem and reference-submission links
+- **Contribution Heatmap:** Visualize your Codeforces problem-solving consistency over the last 365 days.
+- **Time Tracker:** Built-in persistent stopwatch for every unsolved problem. Time your practice!
+- **Global Leaderboard:** Compete with others! A database-backed leaderboard ranks users by their total solved problems.
+- Rating-by-rating problem ladder with Solved/Remaining progress summary.
+- Saved handle matchups in browser storage (localStorage).
+- Responsive desktop/mobile interface with Light/dark and DaisyUI theme support.
 
 ## Run locally
 
 ```bash
 npm install
+
+# Initialize and sync the SQLite Database
+npx prisma db push
+
+# Start the dev server
 npm run dev
 ```
 
@@ -28,9 +32,11 @@ npm run build
 npm start
 ```
 
-## Data & saving
+## Data & Database
 
-Codeforces submission data is fetched through the public Codeforces API. Saved matchups and the last active session are kept only in the browser using `localStorage`; no database is required.
+Codeforces submission data is fetched through the public Codeforces API. Matchups and Stopwatch timers are kept in the browser using `localStorage`. 
+
+**Database Setup:** A local SQLite database is utilized via **Prisma** to track user statistics and power the Leaderboard. For Vercel or cloud deployments, you can easily change the Prisma provider in `prisma/schema.prisma` to `postgresql` or `mysql` and provide a `DATABASE_URL`.
 
 ## Credit
 

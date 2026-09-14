@@ -6,7 +6,7 @@ import { OutProblem, Result, Root } from "../../../utils/types";
 export const codeforcesRouter = router({
   getProbs: publicProcedure
     .input(z.object({ user: z.string(), expert: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const user = input.user.trim();
       const expert = input.expert.trim();
       if (user == "") return undefined;
@@ -18,10 +18,33 @@ export const codeforcesRouter = router({
         const userProbs: Result[] = userJson.result;
 
         const userSolved = new Map<string, boolean>();
+        const heatmapData: Record<string, number> = {};
+
         userProbs.forEach((userprob: Result) => {
           if (userprob.verdict !== "OK") return;
+          
+          // Track unique problems solved for ladder
           userSolved.set(`${userprob.problem.contestId}-${userprob.problem.index}`, true);
+          
+          // Track heatmap data (problems solved per day)
+          if (userprob.creationTimeSeconds) {
+            // creationTimeSeconds is in seconds, convert to MS
+            const date = new Date(userprob.creationTimeSeconds * 1000);
+            const dateStr = date.toISOString().split('T')[0] as string;
+            heatmapData[dateStr] = (heatmapData[dateStr] || 0) + 1;
+          }
         });
+
+        // Upsert user stats in DB for leaderboard
+        try {
+          await ctx.prisma.userStats.upsert({
+            where: { handle: user },
+            update: { solvedCount: userSolved.size, lastUpdated: new Date() },
+            create: { handle: user, solvedCount: userSolved.size },
+          });
+        } catch (dbErr) {
+          console.error("Failed to update user stats", dbErr);
+        }
 
         const expertJson: Root = await expertRes.data;
         const expertProbs: Result[] = expertJson.result;
@@ -48,10 +71,21 @@ export const codeforcesRouter = router({
           probsInfo.push(obj);
         });
         probsInfo.sort((a, b) => a.rating - b.rating);
-        return probsInfo;
+        
+        return {
+          probs: probsInfo,
+          heatmap: heatmapData,
+        };
       }
       catch (e) {
         return "wrong";
       }
     }),
+
+  getLeaderboard: publicProcedure.query(async ({ ctx }) => {
+    return await ctx.prisma.userStats.findMany({
+      orderBy: { solvedCount: 'desc' },
+      take: 50,
+    });
+  }),
 });
