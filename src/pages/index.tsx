@@ -451,7 +451,7 @@ const ProblemRow = ({ prob, index }: { prob: OutProblem; index: number }) => {
   const submissionUrl = `https://codeforces.com/contest/${prob.cid}/submission/${prob.id}`;
 
   const timerKey = `cf-ladder-timer-${prob.cid}-${prob.letter}`;
-  
+
   // State for stopwatch
   const [time, setTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -522,16 +522,16 @@ const ProblemRow = ({ prob, index }: { prob: OutProblem; index: number }) => {
           {!solved && (
             <div className="flex items-center gap-2 mt-1">
               <span className="font-mono text-xs w-12 text-right">{formatTime(time)}</span>
-              <button 
-                onClick={() => setIsRunning(!isRunning)} 
+              <button
+                onClick={() => setIsRunning(!isRunning)}
                 className={`btn btn-xs btn-circle ${isRunning ? "btn-warning" : "btn-primary"}`}
                 title={isRunning ? "Pause" : "Start"}
               >
                 {isRunning ? "⏸" : "▶"}
               </button>
               {time > 0 && !isRunning && (
-                <button 
-                  onClick={() => { setTime(0); try { localStorage.removeItem(timerKey); } catch { /* Optional storage. */ } }} 
+                <button
+                  onClick={() => { setTime(0); try { localStorage.removeItem(timerKey); } catch { /* Optional storage. */ } }}
                   className="btn btn-xs btn-circle btn-ghost"
                   title="Reset"
                 >
