@@ -5,7 +5,7 @@ import ThemeChange from "../utils/ThemeChange";
 import { trpc } from "../utils/trpc";
 
 const Leaderboard: NextPage = () => {
-  const { data, isLoading } = trpc.codeforces.getLeaderboard.useQuery();
+  const { data, isLoading, error } = trpc.codeforces.getLeaderboard.useQuery();
 
   return (
     <>
@@ -24,7 +24,7 @@ const Leaderboard: NextPage = () => {
           </div>
         </div>
 
-        {isLoading ? (
+        {error ? (<p role="alert" className="alert alert-error">{error.message}</p>) : isLoading ? (
           <div className="flex justify-center mt-20">
             <div className="cf-spinner cf-spinner-lg text-primary"></div>
           </div>
@@ -36,7 +36,7 @@ const Leaderboard: NextPage = () => {
                   <th className="w-16 text-center bg-base-300">Rank</th>
                   <th className="bg-base-300">Handle</th>
                   <th className="text-right bg-base-300">Total Solved</th>
-                  <th className="text-right hidden sm:table-cell bg-base-300">Last Active</th>
+                  <th className="text-right hidden sm:table-cell bg-base-300">Last refreshed</th>
                 </tr>
               </thead>
               <tbody>

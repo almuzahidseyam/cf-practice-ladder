@@ -4,8 +4,8 @@ import superjson from "superjson";
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
-  errorFormatter({ shape }) {
-    return shape;
+  errorFormatter({ shape, error }) {
+    return {...shape,message:error.code==='BAD_REQUEST' ? 'Enter valid Codeforces handles using letters, numbers, dots, underscores or hyphens (up to 24 characters).' : shape.message};
   },
 });
 

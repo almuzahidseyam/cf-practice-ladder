@@ -30,12 +30,12 @@ const Home: NextPage = () => {
 
       if (lastSession) {
         const parsed = JSON.parse(lastSession) as SavedMatchup & { rating?: number | null };
-        setUser(parsed.user ?? "");
-        setExpert(parsed.expert ?? "");
+        setUser(typeof parsed.user === "string" ? parsed.user.slice(0,24) : "");
+        setExpert(typeof parsed.expert === "string" ? parsed.expert.slice(0,24) : "");
         if (typeof parsed.rating === "number") setPage(parsed.rating);
       }
 
-      if (saved) setSavedMatchups(JSON.parse(saved) as SavedMatchup[]);
+      if (saved) { const list: unknown=JSON.parse(saved); if(Array.isArray(list)) setSavedMatchups(list.filter((v): v is SavedMatchup => !!v && typeof v.user==='string' && typeof v.expert==='string' && v.user.length<=24 && v.expert.length<=24).slice(0,8)); }
     } catch {
       // Ignore malformed browser storage and start with a clean state.
     } finally {
@@ -45,10 +45,10 @@ const Home: NextPage = () => {
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(
+    try { localStorage.setItem(
       LAST_SESSION_KEY,
       JSON.stringify({ user, expert, rating: page })
-    );
+    ); } catch { /* Browser storage is optional. */ }
   }, [user, expert, page, hydrated]);
 
   const allProblems: OutProblem[] = probs.data && typeof probs.data === 'object' && 'probs' in probs.data ? probs.data.probs : [];
@@ -100,7 +100,7 @@ const Home: NextPage = () => {
     ].slice(0, 8);
 
     setSavedMatchups(next);
-    localStorage.setItem(SAVED_MATCHUPS_KEY, JSON.stringify(next));
+    try { localStorage.setItem(SAVED_MATCHUPS_KEY, JSON.stringify(next)); } catch { /* Keep this session usable. */ }
   };
 
   const removeMatchup = (target: SavedMatchup) => {
@@ -108,7 +108,7 @@ const Home: NextPage = () => {
       (item) => item.user !== target.user || item.expert !== target.expert
     );
     setSavedMatchups(next);
-    localStorage.setItem(SAVED_MATCHUPS_KEY, JSON.stringify(next));
+    try { localStorage.setItem(SAVED_MATCHUPS_KEY, JSON.stringify(next)); } catch { /* Keep this session usable. */ }
   };
 
   const loadMatchup = (matchup: SavedMatchup) => {
@@ -118,7 +118,7 @@ const Home: NextPage = () => {
   };
 
   const hasResults = probs.data && typeof probs.data === 'object' && 'probs' in probs.data;
-  const error = probs.data === "wrong";
+  const error = probs.isError;
 
   return (
     <>
@@ -189,7 +189,7 @@ const Home: NextPage = () => {
               </label>
 
               {error && (
-                <div className="alert alert-error py-3 text-sm">
+                <div role="alert" className="alert alert-error py-3 text-sm">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-5 w-5 shrink-0 stroke-current"
@@ -203,7 +203,7 @@ const Home: NextPage = () => {
                       d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  <span>Could not load these handles. Check the spelling and try again.</span>
+                  <span>{probs.error?.message}</span>
                 </div>
               )}
 
@@ -286,6 +286,7 @@ const Home: NextPage = () => {
           </aside>
 
           <section className="min-w-0">
+            {hasResults && probs.data?.leaderboardSaved === false && <p role="status" className="alert">Ladder ready. Leaderboard could not be saved.</p>}
             {!hasResults && !probs.isLoading && !error && (
               <div className="flex min-h-[72vh] items-center justify-center rounded-3xl border border-dashed border-base-300 bg-base-100/70 p-8 text-center">
                 <div className="max-w-md">
@@ -459,7 +460,7 @@ const ProblemRow = ({ prob, index }: { prob: OutProblem; index: number }) => {
     try {
       const savedTimer = localStorage.getItem(timerKey);
       if (savedTimer) {
-        setTime(parseInt(savedTimer, 10));
+        const saved=Number(savedTimer); if(Number.isSafeInteger(saved)&&saved>=0&&saved<=31536000)setTime(saved);
       }
     } catch {
       // Ignore localStorage errors
@@ -472,7 +473,7 @@ const ProblemRow = ({ prob, index }: { prob: OutProblem; index: number }) => {
       interval = setInterval(() => {
         setTime((prev) => {
           const newTime = prev + 1;
-          localStorage.setItem(timerKey, newTime.toString());
+          try { localStorage.setItem(timerKey, newTime.toString()); } catch { /* Keep timing without persistence. */ }
           return newTime;
         });
       }, 1000);
@@ -530,7 +531,7 @@ const ProblemRow = ({ prob, index }: { prob: OutProblem; index: number }) => {
               </button>
               {time > 0 && !isRunning && (
                 <button 
-                  onClick={() => { setTime(0); localStorage.removeItem(timerKey); }} 
+                  onClick={() => { setTime(0); try { localStorage.removeItem(timerKey); } catch { /* Optional storage. */ } }} 
                   className="btn btn-xs btn-circle btn-ghost"
                   title="Reset"
                 >

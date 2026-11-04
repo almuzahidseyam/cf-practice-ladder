@@ -4,7 +4,7 @@ import { themes } from "./themes";
 
 const ThemeChange: React.FC<{ className: string }> = ({ className }) => {
   useEffect(() => {
-    themeChange(false);
+    try { themeChange(false); } catch { /* Optional theme persistence. */ }
   }, [])
 
   const dropdownClasses = "dropdown-end"
